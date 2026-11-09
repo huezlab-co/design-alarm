@@ -50,18 +50,28 @@ function createWindow() {
     title: NAME, icon: ICON, autoHideMenuBar: true, backgroundColor: '#f6f2ec',
     webPreferences: { contextIsolation: true, backgroundThrottling: false },
   });
-  win.loadURL(SITE);
+  loadSite();
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https:\/\/script\.google\.com\/macros\//.test(url)) { win.loadURL(url); return { action: 'deny' }; }
+    if (/^https:\/\/script\.google\.com\/macros\//.test(url)) { loadSite(); return { action: 'deny' }; }
     shell.openExternal(url); return { action: 'deny' };
   });
   win.on('page-title-updated', e => e.preventDefault());
+  // 웹앱의 「새 버전 → 새로고침」 등이 창 전체를 구글 주소로 바꾸려 하면 액자 페이지를 다시 띄움(맨 위 구글 띠 방지)
+  win.webContents.on('will-navigate', (e, url) => { if (!/^file:/.test(url) && url.split('#')[0] !== DESK) { e.preventDefault(); loadSite(); } });
   win.on('focus', () => { win.flashFrame(false); closeAllPopups(); });
   win.on('close', e => { if (quitting) return; e.preventDefault(); win.hide(); });
   win.webContents.on('did-finish-load', () => setTimeout(tick, 2500));
   win.webContents.on('render-process-gone', () => setTimeout(() => win && !win.isDestroyed() && win.reload(), 3000));
-  win.webContents.on('did-fail-load', (_e, code) => { if (code !== -3) setTimeout(() => win && !win.isDestroyed() && win.loadURL(SITE), 15000); });
+  win.webContents.on('did-fail-load', (_e, code, _d, _u, isMain) => { if (isMain && code !== -3 && !useLocal) { useLocal = true; return loadSite(); } if (isMain && code !== -3) setTimeout(() => win && !win.isDestroyed() && loadSite(), 15000); });
   if (!HIDDEN) win.once('ready-to-show', () => win.show());
+}
+// 창 = 액자 페이지(GitHub Pages desk.html, 안 되면 프로그램 안 shell.html) 속 웹앱
+const DESK = process.env.DA_SHELL === 'local' ? '' : 'https://huezlab-co.github.io/design-alarm/desk.html';
+let useLocal = !DESK;
+function loadSite() {
+  if (!win || win.isDestroyed()) return;
+  if (useLocal) win.loadFile(path.join(__dirname, 'shell.html'), { query: { u: SITE } });
+  else win.loadURL(DESK + '#u=' + DEPLOY + (TEST ? '&t=1' : ''));
 }
 function showWindow(taskId) {
   if (!win) return;

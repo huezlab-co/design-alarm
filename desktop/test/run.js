@@ -3,7 +3,7 @@ const { app, BrowserWindow } = require('electron');
 const fs = require('fs'), path = require('path');
 const { S, srv } = require('./mock-server.js');
 const OUT = '/tmp/da-shots/'; fs.mkdirSync(OUT, { recursive: true });
-process.env.DA_SELFTEST = '1';
+process.env.DA_SELFTEST = '1'; process.env.DA_SHELL = 'local';
 app.setPath('userData', '/tmp/da-user-' + Date.now());
 const ok = [], bad = []; const check = (c, m) => (c ? ok : bad).push(m);
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -18,6 +18,7 @@ srv.listen(0, () => {
     const inner = () => W().webContents.mainFrame.framesInSubtree.find(f => /inner/.test(f.url));
     const ev = c => inner().executeJavaScript(c);
     check(W().isVisible(), '처음 실행하면 창이 보임');
+    check(/^file:.*shell\.html/.test(W().webContents.getURL()) && !!inner(), '창 = 액자 페이지 안에 웹앱(구글 맨 위 띠 안 나옴)');
     await D.tick(); check(D.status.err === 'login', '로그인 전: 「로그인해 주세요」 상태');
     await ev('login()'); S.items = [{ i: 0, id: 'DR-012', title: '옛 작업', k: 'comment', by: '김준혁', s: '예전 메시지', round: 0 }]; S.rev++;
     await D.tick();
@@ -53,6 +54,9 @@ srv.listen(0, () => {
     // 읽음 → 0
     S.seen = 99; S.rev++; await D.tick(); await wait(300);
     check(D.status.n === 0 && overlay[overlay.length - 1] === 'none', '다른 기기에서 읽으면 숫자 0, 빨간 숫자 사라짐');
+    // 웹앱이 창 전체를 구글 주소로 바꾸려 해도 액자 페이지로 돌아옴
+    await W().webContents.executeJavaScript("location.href = 'http://127.0.0.1:' + location.port + '/exec'").catch(() => {}); await wait(2500);
+    check(/^file:.*shell\.html/.test(W().webContents.getURL()), '창 전체 이동은 막고 액자 페이지 그대로');
     // 연결 끊김
     S.down = true; S.rev++; await D.tick(); check(D.status.err === 'net', '연결 끊기면 「다시 시도 중」');
     S.down = false; await D.tick(); check(D.status.ok && !D.status.err, '연결 돌아오면 정상');

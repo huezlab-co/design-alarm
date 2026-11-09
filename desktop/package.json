@@ -1,7 +1,7 @@
 {
   "name": "design-alarm",
   "productName": "디자인 작업 알림",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "휴즈랩 디자인 작업 알림 (오른쪽 아래 알림 창 · 작업표시줄 주황 · 빨간 숫자)",
   "author": "HUEZLAB",
   "main": "main.js",
@@ -26,6 +26,7 @@
     },
     "files": [
       "main.js",
+      "shell.html",
       "config.json",
       "build/icon.png",
       "package.json"
