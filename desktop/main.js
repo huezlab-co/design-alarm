@@ -17,7 +17,7 @@ const SITE = EXEC + (TEST ? '?test=1' : '');
 const POLL_MS = 20000;
 const ICON = path.join(__dirname, 'build', 'icon.png');
 const STATE_FILE = () => path.join(app.getPath('userData'), 'state.json');
-const HIDDEN = process.argv.includes('--hidden');
+let HIDDEN = process.argv.includes('--hidden');
 
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 app.setAppUserModelId(APP_ID);
@@ -32,12 +32,12 @@ function loadState() {
   try {
     const s = JSON.parse(fs.readFileSync(STATE_FILE(), 'utf8'));
     if (s.tokEnc && safeStorage.isEncryptionAvailable()) s.tok = safeStorage.decryptString(Buffer.from(s.tokEnc, 'base64'));
-    delete s.tokEnc; state = Object.assign(state, s);
+    delete s.tokEnc; delete s.rev; state = Object.assign(state, s);
   } catch { /* 처음 */ }
 }
 function saveState() {
   try {
-    const o = Object.assign({}, state); delete o.tok;
+    const o = Object.assign({}, state); delete o.tok; delete o.rev;
     if (state.tok && safeStorage.isEncryptionAvailable()) o.tokEnc = safeStorage.encryptString(state.tok).toString('base64');
     fs.writeFileSync(STATE_FILE(), JSON.stringify(o));
   } catch { /* 무시 */ }
@@ -90,7 +90,7 @@ async function readLogin() {
 
 /* ---------- 서버에 묻기 ---------- */
 async function api(body) {
-  const res = await net.fetch(EXEC, { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: 'follow' });
+  const res = await net.fetch(EXEC, { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: 'follow', signal: AbortSignal.timeout(30000) });
   if (!res.ok) throw new Error('응답 ' + res.status);
   const t = await res.text();
   try { return JSON.parse(t); } catch { throw new Error('응답 형식'); }
@@ -110,9 +110,10 @@ async function tick() {
     if (r.same) { setStatus(Object.assign({}, status, { ok: true, err: '' })); return; }
     state.rev = r.rev; state.name = r.name;
     const key = r.name + (r.test ? '|T' : '');
-    const seenMax = state.last[key];
+    let seenMax = state.last[key];
+    if (seenMax !== undefined && seenMax >= r.last) seenMax = -1;   // 기록 줄이 줄었으면(시험 초기화 등) 다시 맞춤
     const fresh = seenMax === undefined ? [] : r.items.filter(x => x.i > seenMax);
-    state.last[key] = Math.max(seenMax === undefined ? -1 : seenMax, r.last - 1);
+    state.last[key] = r.last - 1;
     saveState();
     const before = status.n;
     setStatus({ n: r.n, ok: true, err: '', name: r.name });
@@ -205,11 +206,12 @@ ipcMain.on('popup-click', (e, what) => {
 /* ---------- 빨간 숫자(작업표시줄·트레이) ---------- */
 async function paint(n, size, withBase) {
   if (!painter) {
-    painter = new BrowserWindow({ show: false, width: 64, height: 64, webPreferences: { offscreen: true } });
-    await painter.loadURL('data:text/html,<canvas></canvas>');
+    const pw = new BrowserWindow({ show: false, width: 64, height: 64, webPreferences: { offscreen: true } });
+    painter = pw.loadURL('data:text/html,<canvas></canvas>').then(() => pw);
   }
+  const pw = await painter;
   const base = withBase ? nativeImage.createFromPath(ICON).resize({ width: size, height: size }).toDataURL() : '';
-  const url = await painter.webContents.executeJavaScript(`(async () => {
+  const url = await pw.webContents.executeJavaScript(`(async () => {
     const S = ${size}, c = document.querySelector('canvas'); c.width = c.height = S; const x = c.getContext('2d'); x.clearRect(0,0,S,S);
     if (${JSON.stringify(base)}) { const im = new Image(); im.src = ${JSON.stringify(base)}; await im.decode(); x.drawImage(im, 0, 0, S, S); }
     const t = ${JSON.stringify(n > 99 ? '99+' : String(n))};
@@ -274,7 +276,10 @@ function setupUpdater() {
     updater.on('update-downloaded', () => {
       updReady = true;
       // 창을 안 보고 있을 때 조용히 바꿔 다시 켬(알림·로그인은 그대로)
-      const tryNow = () => { if (!win || !win.isFocused()) installUpdate(); else setTimeout(tryNow, 60000); };
+      const tryNow = () => {
+        const away = !win || !win.isVisible() || win.isMinimized() || powerMonitor.getSystemIdleTime() > 300;
+        if (away) { state.startHidden = !win || !win.isVisible() || win.isMinimized(); saveState(); installUpdate(); } else setTimeout(tryNow, 60000);
+      };
       setTimeout(tryNow, 5000);
     });
     setTimeout(() => checkUpdate(false), 30000);
@@ -288,6 +293,7 @@ app.on('before-quit', () => { quitting = true; });
 app.on('window-all-closed', () => { /* 트레이에 남음 */ });
 app.whenReady().then(() => {
   loadState();
+  if (state.startHidden) { HIDDEN = true; state.startHidden = false; saveState(); }   // 업데이트로 다시 켜졌을 때 원래처럼 숨긴 채
   // 처음 설치하면 「컴퓨터 켜면 자동 실행」 켜 둠(트레이 메뉴에서 끌 수 있음)
   if (!state.autoStartSet) { if (app.isPackaged) setAutoStart(true); state.autoStartSet = true; saveState(); }
   createWindow(); createTray(); setupUpdater();
@@ -298,5 +304,5 @@ app.whenReady().then(() => {
 });
 // 시험용(DA_SELFTEST=1): 상태를 밖에서 볼 수 있게
 if (process.env.DA_SELFTEST === '1') {
-  global.__da = { get status() { return status; }, get popups() { return popups.map(p => p.webContents.getURL()); }, get state() { return state; }, tick, showWindow, get win() { return win; }, alertNew, closeAllPopups };
+  global.__da = { get status() { return status; }, get popups() { return popups.map(p => p.webContents.getURL()); }, get state() { return state; }, tick, showWindow, get win() { return win; }, alertNew, closeAllPopups, paint };
 }

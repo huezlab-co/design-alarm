@@ -84,7 +84,7 @@ async function ensureSub(ask) {
   if (r.ok) ls.set('da_sub', '1');
   refreshBar(); return !!r.ok;
 }
-async function unsubscribe(oldTok) { try { const sub = SW && await SW.pushManager.getSubscription(); if (sub) await api({ api: 'unsub', tok: oldTok, ep: sub.endpoint }); } catch (e) {} ls.set('da_sub', ''); }
+async function unsubscribe(oldTok) { try { const sub = SW && await SW.pushManager.getSubscription(); if (sub) await api({ api: 'unsub', tok: oldTok, test: TEST ? 1 : 0, ep: sub.endpoint }); } catch (e) {} ls.set('da_sub', ''); }
 function refreshBar() {
   const can = SW && TOK && 'Notification' in window && 'PushManager' in window;
   const show = can && Notification.permission === 'default' && ls.get('da_later') !== new Date().toDateString();

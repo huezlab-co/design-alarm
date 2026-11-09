@@ -1,8 +1,8 @@
 version: 1.0.0
 files:
   - url: design-alarm-setup-1.0.0.exe
-    sha512: 02iCk/6wy0BzVVecLtBzEnEKwakjfxVNZqv86zLK8bW3cQtSM6+3QDxRopcYrOIvRq+M+PENzPgOOzsaE7pBPQ==
-    size: 81461659
+    sha512: py72UiPhKZawmm+DewVvVF7ZcdOHscWhUXf/yXXWxsLRsJ2AGbJeq+M1k6HhItN5gN+emghFUC5gwb69qcVtXw==
+    size: 81461914
 path: design-alarm-setup-1.0.0.exe
-sha512: 02iCk/6wy0BzVVecLtBzEnEKwakjfxVNZqv86zLK8bW3cQtSM6+3QDxRopcYrOIvRq+M+PENzPgOOzsaE7pBPQ==
-releaseDate: '2026-11-09T01:38:29.293Z'
+sha512: py72UiPhKZawmm+DewVvVF7ZcdOHscWhUXf/yXXWxsLRsJ2AGbJeq+M1k6HhItN5gN+emghFUC5gwb69qcVtXw==
+releaseDate: '2026-11-09T01:51:55.625Z'

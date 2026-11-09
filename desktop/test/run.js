@@ -63,7 +63,9 @@ srv.listen(0, () => {
     S.auth = false; S.rev++; await D.tick(); check(D.status.err === 'login', 'PIN 바뀌어 토큰이 무효면 로그인 필요'); S.auth = true;
     // 저장 파일에 토큰 맨글자 없음
     const st = fs.readFileSync(path.join(app.getPath('userData'), 'state.json'), 'utf8');
+    check(!/"rev"/.test(st), '다시 켜면 처음부터 물어봄(rev 저장 안 함)');
     check(!/tok123/.test(st), '저장 파일에 토큰이 그대로 적히지 않음(암호화 또는 빈 값)');
+    for (const [n, sz, base] of [[3, 32, false], [12, 32, true], [120, 32, true]]) fs.writeFileSync(OUT + 'badge_' + n + '_' + base + '.png', (await D.paint(n, sz, base)).resize({ width: 96, height: 96, quality: 'best' }).toPNG());
     console.log('PASS', ok.length, 'FAIL', bad.length); bad.forEach(x => console.log('  ✗', x));
     app.exit(0);
   });
