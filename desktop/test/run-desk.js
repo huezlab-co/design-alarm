@@ -32,6 +32,11 @@ srv.listen(0, () => {
       check((await ev('OPEN')) === 'DR-021', '알림 창 누르면 액자 → 웹앱 postMessage로 그 작업 열기');
       const w0 = await ev('window.__woke||0'); D.alertNew([{ i: 9, id: 'DR-021', title: 'x', k: 'comment', by: 'y', s: 'z' }]); await wait(500);
       check((await ev('window.__woke||0')) > w0, '새로고침도 postMessage로');
+      // 업데이트 띠
+      W().show(); W().webContents.send('desk-update', '1.0.9'); await wait(500);
+      const bar = await W().webContents.executeJavaScript("(() => { const b = document.getElementById('hzUpd'), f = document.getElementById('app'); return b ? [b.textContent, getComputedStyle(f).top] : null; })()");
+      check(bar && /새 업데이트가 나왔어요\(1\.0\.9\)/.test(bar[0]) && bar[1] === '44px', '업데이트 받으면 창 맨 위에 띠(웹앱은 아래로 밀림)');
+      const img = await W().webContents.capturePage(); require('fs').writeFileSync('/tmp/upd_bar.png', img.toPNG());
       await ev('logout()'); await wait(800); check(D.state.tok === '', '웹앱 로그아웃도 바로 전달');
     }
     console.log('PASS', ok.length, 'FAIL', bad.length); bad.forEach(x => console.log('  ✗', x)); app.exit(0);

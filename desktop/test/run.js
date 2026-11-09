@@ -32,7 +32,7 @@ srv.listen(0, () => {
     await D.tick(); await wait(900);
     check(D.status.n === 3 && D.popups.length === 2, '새 소식 2개 → 알림 창 2개, 숫자 3');
     check(W().isVisible(), '숨어 있던 창이 작업표시줄로 돌아옴(가상 화면엔 창 관리자가 없어 최소화 여부는 윈도우에서 확인)');
-    check(flashes[flashes.length - 1] === true, '작업표시줄 주황 깜빡임 켜짐');
+    await wait(4500); check(flashes.filter(x => x === true).length >= 3 && flashes[flashes.length - 1] === true, '작업표시줄 주황: 아이콘이 생길 시간을 두고 여러 번 켬 (' + flashes.filter(x => x).length + '번)');
     check(overlay.some(x => /3개/.test(x)), '작업표시줄 빨간 숫자 3');
     // 사진
     const all = BrowserWindow.getAllWindows().filter(w => w !== W() && w.isVisible());

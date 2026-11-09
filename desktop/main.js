@@ -60,7 +60,7 @@ function createWindow() {
   win.webContents.on('will-navigate', (e, url) => { if (!/^file:/.test(url) && url.split('#')[0] !== DESK) { e.preventDefault(); loadSite(); } });
   win.on('focus', () => { win.flashFrame(false); closeAllPopups(); });
   win.on('close', e => { if (quitting) return; e.preventDefault(); win.hide(); });
-  win.webContents.on('did-finish-load', () => { applyZoom(); setTimeout(tick, 2500); });
+  win.webContents.on('did-finish-load', () => { applyZoom(); showUpdBar(); setTimeout(tick, 2500); });
   // 확대·축소: Ctrl+마우스 휠, Ctrl + / Ctrl − / Ctrl 0 — 맞춘 크기는 기억
   win.webContents.on('zoom-changed', (_e, dir) => setZoom((state.zoom || 0) + (dir === 'in' ? 0.5 : -0.5)));
   win.webContents.on('before-input-event', (e, i) => {
@@ -119,6 +119,14 @@ async function readLogin() {
   if (r && typeof r.tok === 'string' && r.tok !== state.tok) { state.tok = r.tok; state.name = r.name || ''; state.rev = ''; saveState(); }
 }
 
+/* 작업표시줄 주황: 숨은 창은 작업표시줄에 최소화로 올린 뒤, 아이콘이 생길 시간을 두고 여러 번 주황을 켬
+ * (아이콘이 생기기 전에 한 번만 켜면 윈도우가 무시함 — 11-09 대표 PC에서 알림 창만 뜨고 주황이 안 들어옴) */
+function flashOrange() {
+  if (!win || win.isDestroyed()) return;
+  if (!win.isVisible()) { win.showInactive(); win.minimize(); }
+  const go = () => { if (win && !win.isDestroyed() && !(win.isVisible() && !win.isMinimized() && win.isFocused())) win.flashFrame(true); };
+  go(); [400, 1500, 4000].forEach(t => setTimeout(go, t));
+}
 function wakeApp() { if (deskSeen) { if (win && !win.isDestroyed()) win.webContents.send('desk-wake'); } else inApp('wake(); return 1;'); }
 
 /* ---------- 서버에 묻기 ---------- */
@@ -184,10 +192,7 @@ function alertNew(items, total) {
   } else if (total) showPopup({ title: NAME, body: '안 읽은 소식 ' + total + '개가 있어요', id: '' });
   wakeApp();
   // 작업표시줄 주황: 창이 숨어 있으면 작업표시줄에 다시 올려(최소화 상태) 주황으로
-  if (win) {
-    if (!win.isVisible()) { win.showInactive(); win.minimize(); }
-    win.flashFrame(true);
-  }
+  flashOrange();
 }
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -293,7 +298,9 @@ function createTray() {
 }
 
 /* ---------- 자동 업데이트(GitHub Pages의 update 폴더) ---------- */
-let updater = null, updReady = false;
+let updater = null, updReady = false, updVer = '';
+function showUpdBar() { if (updReady && win && !win.isDestroyed()) win.webContents.send('desk-update', updVer); }
+ipcMain.on('desk-update-now', e => { if (win && e.sender === win.webContents && updReady) { state.startHidden = false; saveState(); installUpdate(); } });
 function checkUpdate(manual) {
   if (!updater) { if (manual) showPopup({ title: NAME, body: '업데이트는 설치한 프로그램에서만 확인해요', id: '' }); return; }
   updater.checkForUpdates().then(r => {
@@ -306,8 +313,9 @@ function setupUpdater() {
   try {
     updater = require('electron-updater').autoUpdater;
     updater.autoDownload = true; updater.autoInstallOnAppQuit = true;
-    updater.on('update-downloaded', () => {
-      updReady = true;
+    updater.on('update-downloaded', info => {
+      updReady = true; updVer = (info && info.version) || '';
+      showUpdBar();
       // 창을 안 보고 있을 때 조용히 바꿔 다시 켬(알림·로그인은 그대로)
       const tryNow = () => {
         const away = !win || !win.isVisible() || win.isMinimized() || powerMonitor.getSystemIdleTime() > 300;
