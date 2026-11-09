@@ -315,6 +315,7 @@ app.on('before-quit', () => { quitting = true; });
 app.on('window-all-closed', () => { /* 트레이에 남음 */ });
 app.whenReady().then(() => {
   loadState();
+  Menu.setApplicationMenu(null);   // Alt를 눌러도 영어 기본 메뉴(File·Exit)가 안 나오게 — 끄기는 트레이 메뉴에서만
   if (state.startHidden) { HIDDEN = true; state.startHidden = false; saveState(); }   // 업데이트로 다시 켜졌을 때 원래처럼 숨긴 채
   // 처음 설치하면 「컴퓨터 켜면 자동 실행」 켜 둠(트레이 메뉴에서 끌 수 있음)
   if (!state.autoStartSet) { if (app.isPackaged) setAutoStart(true); state.autoStartSet = true; saveState(); }
