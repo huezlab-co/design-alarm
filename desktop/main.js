@@ -60,7 +60,16 @@ function createWindow() {
   win.webContents.on('will-navigate', (e, url) => { if (!/^file:/.test(url) && url.split('#')[0] !== DESK) { e.preventDefault(); loadSite(); } });
   win.on('focus', () => { win.flashFrame(false); closeAllPopups(); });
   win.on('close', e => { if (quitting) return; e.preventDefault(); win.hide(); });
-  win.webContents.on('did-finish-load', () => setTimeout(tick, 2500));
+  win.webContents.on('did-finish-load', () => { applyZoom(); setTimeout(tick, 2500); });
+  // 확대·축소: Ctrl+마우스 휠, Ctrl + / Ctrl − / Ctrl 0 — 맞춘 크기는 기억
+  win.webContents.on('zoom-changed', (_e, dir) => setZoom((state.zoom || 0) + (dir === 'in' ? 0.5 : -0.5)));
+  win.webContents.on('before-input-event', (e, i) => {
+    if (i.type !== 'keyDown' || !(i.control || i.meta) || i.alt) return;
+    const k = i.key;
+    if (k === '=' || k === '+' || i.code === 'NumpadAdd') { e.preventDefault(); setZoom((state.zoom || 0) + 0.5); }
+    else if (k === '-' || k === '_' || i.code === 'NumpadSubtract') { e.preventDefault(); setZoom((state.zoom || 0) - 0.5); }
+    else if (k === '0' || i.code === 'Numpad0') { e.preventDefault(); setZoom(0); }
+  });
   // 액자 페이지가 404 등 오류 화면으로 열리면 프로그램 안 shell.html로
   win.webContents.on('did-navigate', (_e, url, code) => { if (code >= 400 && !useLocal && !/^file:/.test(url)) { useLocal = true; loadSite(); } });
   win.webContents.on('render-process-gone', () => setTimeout(() => win && !win.isDestroyed() && win.reload(), 3000));
@@ -70,6 +79,8 @@ function createWindow() {
 // 창 = 액자 페이지(GitHub Pages desk.html, 안 되면 프로그램 안 shell.html) 속 웹앱
 const DESK = process.env.DA_SHELL === 'local' ? '' : (process.env.DA_DESK || 'https://huezlab-co.github.io/design-alarm/desk.html');
 let useLocal = !DESK;
+function applyZoom() { if (win && !win.isDestroyed()) win.webContents.setZoomLevel(state.zoom || 0); }
+function setZoom(z) { state.zoom = Math.max(-3, Math.min(3, Math.round(z * 2) / 2)); saveState(); applyZoom(); }
 function loadSite() {
   if (!win || win.isDestroyed()) return;
   if (useLocal) { deskSeen = false; win.loadFile(path.join(__dirname, 'shell.html'), { query: { u: SITE } }); }

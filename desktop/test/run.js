@@ -57,6 +57,14 @@ srv.listen(0, () => {
     // 웹앱이 창 전체를 구글 주소로 바꾸려 해도 액자 페이지로 돌아옴
     await W().webContents.executeJavaScript("location.href = 'http://127.0.0.1:' + location.port + '/exec'").catch(() => {}); await wait(2500);
     check(/^file:.*shell\.html/.test(W().webContents.getURL()), '창 전체 이동은 막고 액자 페이지 그대로');
+    // 확대·축소
+    const zk = async (key, code) => { W().webContents.sendInputEvent({ type: 'keyDown', keyCode: key, modifiers: ['control'] }); await wait(300); };
+    W().focus(); await wait(200);
+    await zk('-'); await zk('-'); const z1 = W().webContents.getZoomLevel();
+    W().webContents.emit('zoom-changed', {}, 'in'); await wait(200); const z2 = W().webContents.getZoomLevel();
+    check(z1 === -1 && z2 === -0.5 && D.state.zoom === -0.5, 'Ctrl − 두 번 = 작게, Ctrl+휠 위로 = 한 단계 크게 (' + z1 + ' → ' + z2 + ')');
+    W().reload(); await wait(2500); check(W().webContents.getZoomLevel() === -0.5, '다시 열어도 맞춘 크기 그대로');
+    await zk('0'); check(W().webContents.getZoomLevel() === 0 && D.state.zoom === 0, 'Ctrl 0 = 원래 크기');
     // 연결 끊김
     S.down = true; S.rev++; await D.tick(); check(D.status.err === 'net', '연결 끊기면 「다시 시도 중」');
     S.down = false; await D.tick(); check(D.status.ok && !D.status.err, '연결 돌아오면 정상');
