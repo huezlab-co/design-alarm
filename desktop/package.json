@@ -1,0 +1,53 @@
+{
+  "name": "design-alarm",
+  "productName": "디자인 작업 알림",
+  "version": "1.0.0",
+  "description": "휴즈랩 디자인 작업 알림 (오른쪽 아래 알림 창 · 작업표시줄 주황 · 빨간 숫자)",
+  "author": "HUEZLAB",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --x64"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.huezlab.designalarm",
+    "productName": "디자인 작업 알림",
+    "artifactName": "design-alarm-setup-${version}.${ext}",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "config.json",
+      "build/icon.png",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "디자인 작업 알림",
+      "deleteAppDataOnUninstall": false
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://huezlab-co.github.io/design-alarm/update/"
+      }
+    ]
+  }
+}

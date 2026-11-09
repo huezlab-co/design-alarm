@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e8783a">
+<meta name="robots" content="noindex">
+<title>디자인 작업</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  html, body { margin: 0; height: 100%; background: #f6f2ec; font-family: system-ui, "Noto Sans KR", sans-serif; }
+  #app { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+  body.bar #app { top: 52px; height: calc(100% - 52px); }
+  #bar { position: fixed; top: 0; left: 0; right: 0; height: 52px; display: none; align-items: center; gap: 10px; padding: 0 12px; box-sizing: border-box;
+    background: #2b241d; color: #fff; font-size: 14px; z-index: 2; }
+  body.bar #bar { display: flex; }
+  #bar span { flex: 1; line-height: 1.35; }
+  #bar button { border: 0; border-radius: 10px; padding: 9px 14px; font: inherit; font-weight: 700; cursor: pointer; }
+  #on { background: #e8783a; color: #fff; }
+  #later { background: transparent; color: #cfc6bd; padding: 9px 6px !important; }
+  #setup { display: none; padding: 40px 24px; text-align: center; color: #2b241d; line-height: 1.6; }
+  body.nosetup #setup { display: block; } body.nosetup #app { display: none; }
+</style>
+</head>
+<body>
+<div id="bar"><span id="barT">이 폰에서 새 소식 알림을 받을까요?</span><button id="later" type="button">나중에</button><button id="on" type="button">알림 받기</button></div>
+<div id="setup">처음 한 번은 대표님께 받은 <b>설치 링크</b>로 열어 주세요.</div>
+<iframe id="app" title="디자인 작업" allow="clipboard-write; downloads"></iframe>
+<script>
+/* 휴즈랩 디자인 작업 — 폰 알림 앱 껍데기
+ * - 웹앱(구글 Apps Script)을 이 안에 그대로 띄운다. 웹앱 주소는 설치 링크(#u=…)로 한 번 받아 이 폰에만 저장(이 저장소엔 안 적음).
+ * - 웹앱이 로그인 정보를 알려 주면, 알림을 허락받아 서버에 이 폰을 등록한다.
+ * - 서버는 소식이 생기면 「깨우기」만 보내고, sw.js가 서버에 물어 내용을 띄운다.
+ */
+const $ = id => document.getElementById(id);
+const DB = (() => { let p; const open = () => p || (p = new Promise((res, rej) => { const r = indexedDB.open('da', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }));
+  return { get: k => open().then(d => new Promise(res => { const q = d.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(undefined); })),
+    set: (k, v) => open().then(d => new Promise(res => { const t = d.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = () => res(); t.onerror = () => res(); })) }; })();
+const ls = { get: k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+// 1) 설치 링크에서 웹앱 주소 받기(#u=배포ID, 시험은 #u=…&t=1)
+const h = new URLSearchParams(location.hash.slice(1));
+if (/^AKfy[\w-]{20,120}$/.test(h.get('u') || '')) { ls.set('da_u', h.get('u')); ls.set('da_t', h.get('t') === '1' ? '1' : ''); }
+if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+const DEP = ls.get('da_u'), TEST = ls.get('da_t') === '1';
+const EXEC = DEP ? 'https://script.google.com/macros/s/' + DEP + '/exec' : '';
+if (!EXEC) document.body.classList.add('nosetup');
+else { DB.set('exec', EXEC); $('app').src = EXEC + (TEST ? '?test=1' : ''); }
+
+// 2) 서비스 워커(알림 받는 일꾼)
+let SW = null;
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').then(r => { SW = r; refreshBar(); }).catch(() => {});
+
+// 3) 웹앱이 알려 주는 로그인 정보
+let TOK = '', NAME = '';
+const APP_ORIGIN = /^https:\/\/[\w-]+-script\.googleusercontent\.com$/;
+window.addEventListener('message', e => {
+  const d = e.data;
+  if (!d || d.hz !== 'tok' || !APP_ORIGIN.test(e.origin)) return;
+  const old = TOK; TOK = String(d.tok || ''); NAME = String(d.name || '');
+  DB.set('tok', TOK); DB.set('name', NAME);
+  if (old && old !== TOK) unsubscribe(old);   // 로그아웃·다른 사람으로 로그인
+  if (TOK) ensureSub(); refreshBar();
+});
+// 웹앱 프레임(구글 iframe 두세 겹 속)에 말 걸기
+function tellApp(msg) {
+  const walk = w => { try { w.postMessage(msg, '*'); } catch (e) {} try { for (let i = 0; i < w.frames.length; i++) walk(w.frames[i]); } catch (e) {} };
+  try { walk($('app').contentWindow); } catch (e) {}
+}
+// 웹앱이 먼저 떠 있었으면 로그인 정보를 다시 달라고
+$('app').addEventListener('load', () => { [800, 2500, 6000].forEach(t => setTimeout(() => tellApp({ hz: 'hello' }), t)); });
+
+// 4) 알림 허락 · 등록
+const b64 = s => { const p = '='.repeat((4 - s.length % 4) % 4), r = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from([...r].map(c => c.charCodeAt(0))); };
+async function api(body) { const r = await fetch(EXEC, { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); return r.json(); }
+async function ensureSub(ask) {
+  if (!SW || !TOK || !('PushManager' in window)) return false;
+  if (Notification.permission !== 'granted') { if (!ask) return false; if ((await Notification.requestPermission()) !== 'granted') { refreshBar(); return false; } }
+  let sub = await SW.pushManager.getSubscription();
+  if (!sub) { const k = await api({ api: 'vapid' }); if (!k.ok) return false; sub = await SW.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(k.k) }); }
+  const r = await api({ api: 'sub', tok: TOK, ep: sub.endpoint }).catch(() => ({}));
+  if (r.ok) ls.set('da_sub', '1');
+  refreshBar(); return !!r.ok;
+}
+async function unsubscribe(oldTok) { try { const sub = SW && await SW.pushManager.getSubscription(); if (sub) await api({ api: 'unsub', tok: oldTok, ep: sub.endpoint }); } catch (e) {} ls.set('da_sub', ''); }
+function refreshBar() {
+  const can = SW && TOK && 'Notification' in window && 'PushManager' in window;
+  const show = can && Notification.permission === 'default' && ls.get('da_later') !== new Date().toDateString();
+  $('barT').textContent = '이 폰에서 새 소식 알림을 받을까요?';
+  document.body.classList.toggle('bar', !!show);
+}
+$('on').addEventListener('click', () => { $('on').textContent = '설정 중…'; ensureSub(true).finally(() => { $('on').textContent = '알림 받기'; }); });
+$('later').addEventListener('click', () => { ls.set('da_later', new Date().toDateString()); refreshBar(); });
+
+// 5) 알림을 눌러 열렸을 때: 그 작업 열기(?open=DR-012 또는 일꾼이 보낸 말)
+const want = new URLSearchParams(location.search).get('open');
+if (want) { history.replaceState(null, '', location.pathname); [1500, 3500, 6000, 9000].forEach(t => setTimeout(() => tellApp({ hz: 'open', id: want }), t)); }
+navigator.serviceWorker && navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.open) tellApp({ hz: 'open', id: e.data.open }); if (e.data && e.data.wake) tellApp({ hz: 'wake' }); });
+// 앱을 보고 있으면 쌓인 알림 정리 + 웹앱 새로고침
+document.addEventListener('visibilitychange', () => { if (document.hidden) return; tellApp({ hz: 'wake' }); if (SW) SW.getNotifications().then(L => L.forEach(n => n.close())).catch(() => {}); if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {}); });
+</script>
+</body>
+</html>
