@@ -8,32 +8,24 @@
 <link rel="icon" href="icon-192.png">
 <style>
   body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f6f2ec; color: #2b241d; font-family: "Malgun Gothic", system-ui, sans-serif; }
-  .card { width: min(460px, 92vw); background: #fff; border-radius: 20px; box-shadow: 0 10px 30px rgba(60,40,20,.10); padding: 34px 30px 28px; text-align: center; box-sizing: border-box; }
-  .card img { width: 76px; height: 76px; }
-  h1 { font-size: 24px; margin: 14px 0 6px; }
-  .sub { color: #6b6158; font-size: 14px; margin: 0 0 22px; line-height: 1.5; }
-  .btn { display: block; background: #e8783a; color: #fff; text-decoration: none; font-size: 19px; font-weight: 700; border-radius: 14px; padding: 16px; }
+  .card { width: min(380px, 90vw); background: #fff; border-radius: 22px; box-shadow: 0 10px 30px rgba(60,40,20,.08); padding: 40px 32px 30px; text-align: center; box-sizing: border-box; }
+  .card img { width: 72px; height: 72px; }
+  h1 { font-size: 24px; margin: 16px 0 28px; }
+  .btn { display: block; background: #e8783a; color: #fff; text-decoration: none; font-size: 18px; font-weight: 700; border-radius: 14px; padding: 15px; }
   .btn:hover { background: #d96a2c; }
   .btn.off { background: #c9bfb5; pointer-events: none; }
-  .ver { font-size: 13px; color: #8a7f75; margin-top: 10px; }
-  ol { text-align: left; font-size: 14px; line-height: 1.7; color: #4a4038; margin: 22px 0 0; padding-left: 20px; }
-  .note { background: #fff6ec; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #6b4a2b; text-align: left; margin-top: 14px; line-height: 1.5; }
+  .ver { font-size: 13px; color: #9a9087; margin-top: 10px; }
+  .tip { font-size: 13px; color: #8a7f75; margin-top: 22px; line-height: 1.5; }
+  .tip b { color: #5d544b; }
 </style>
 </head>
 <body>
 <div class="card">
   <img src="icon-192.png" alt="">
   <h1>(주)휴즈랩 디자인</h1>
-  <p class="sub">디자인 작업 요청·현황판 윈도우 프로그램<br>새 소식이 오면 바로 알려 드려요</p>
-  <a class="btn off" id="dl" href="#">설치 파일 찾는 중…</a>
+  <a class="btn off" id="dl" href="#">불러오는 중…</a>
   <div class="ver" id="ver"></div>
-  <ol>
-    <li>「설치하기」를 눌러 파일을 받아요.</li>
-    <li>받은 파일을 실행해요.</li>
-    <li>파란 「Windows의 PC 보호」 창이 뜨면 <b>「추가 정보」 → 「실행」</b>을 눌러요. (정상이에요)</li>
-    <li>창이 열리면 본인 PIN을 넣어요. 끝!</li>
-  </ol>
-  <div class="note">윈도우 PC용이에요. 한 번 설치하면 새 버전은 저절로 업데이트돼요.</div>
+  <div class="tip">설치 중 「PC 보호」 창이 뜨면 <b>추가 정보 → 실행</b></div>
 </div>
 <script>
 // 항상 최신 설치 파일로 연결(버전이 바뀌어도 이 주소는 그대로)
@@ -41,7 +33,7 @@ fetch('update/latest.yml?' + Date.now(), { cache: 'no-store' }).then(r => r.text
   const p = (/^path:\s*(.+)$/m.exec(t) || [])[1], v = (/^version:\s*(.+)$/m.exec(t) || [])[1];
   if (!p) throw new Error();
   const a = document.getElementById('dl'); a.href = 'update/' + p.trim(); a.textContent = '설치하기'; a.className = 'btn'; a.setAttribute('download', '');
-  document.getElementById('ver').textContent = '최신 버전 ' + (v || '').trim();
+  document.getElementById('ver').textContent = '윈도우용 · 버전 ' + (v || '').trim();
 }).catch(() => { const a = document.getElementById('dl'); a.textContent = '잠시 뒤 다시 열어 주세요'; });
 </script>
 </body>
