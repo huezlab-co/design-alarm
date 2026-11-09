@@ -26,6 +26,7 @@
     },
     "files": [
       "main.js",
+      "desk-preload.js",
       "shell.html",
       "config.json",
       "build/icon.png",

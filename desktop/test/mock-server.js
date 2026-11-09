@@ -5,10 +5,14 @@ const inner = `<!doctype html><meta charset=utf-8><body><script>
 let TOKEN = localStorage.getItem('t') || '', ME = TOKEN ? '김설희' : '', TESTMODE = false, OPEN = '';
 function openTask(id) { OPEN = id; document.title = 'open:' + id; window.__opened = (window.__opened || []).concat(id); }
 function wake() { window.__woke = (window.__woke || 0) + 1; }
-window.login = () => { TOKEN = 'tok123'; ME = '김설희'; localStorage.setItem('t', TOKEN); };
-window.logout = () => { TOKEN = ''; ME = ''; localStorage.removeItem('t'); };
+const tell = () => { try { window.top.postMessage({ hz: 'tok', tok: TOKEN, name: TOKEN ? ME : '', test: 0 }, '*'); } catch (e) {} };
+window.login = () => { TOKEN = 'tok123'; ME = '김설희'; localStorage.setItem('t', TOKEN); tell(); };
+window.logout = () => { TOKEN = ''; ME = ''; localStorage.removeItem('t'); tell(); };
+window.addEventListener('message', e => { const d = e.data; if (!d || !TOKEN) return; if (d.hz === 'hello') tell(); if (d.hz === 'open') openTask(d.id); if (d.hz === 'wake') wake(); });
 </script>앱</body>`;
 const srv = http.createServer((q, r) => {
+  if (q.url.startsWith('/desk.html')) { r.setHeader('content-type', 'text/html'); r.end(require('fs').readFileSync(__dirname + '/../../docs/desk.html', 'utf8').replace(/const APP_ORIGIN = .*;/, 'const APP_ORIGIN = /^http:\\/\\/127\\.0\\.0\\.1:\\d+$/;').replace(/if \(\/\^AKfy[^\n]*\n/, "frame.src = '/sandbox';\n")); return; }
+  if (q.url.startsWith('/nope')) { r.statusCode = 404; r.end('<h1>404</h1>'); return; }
   if (q.url.startsWith('/inner')) { r.end(inner); return; }
   if (q.url.startsWith('/sandbox')) { r.end('<!doctype html><iframe src="/inner" style="width:100%;height:80vh"></iframe>'); return; }
   if (q.method === 'GET') { r.setHeader('content-type', 'text/html'); r.end('<!doctype html><iframe src="/sandbox" style="width:100%;height:90vh"></iframe>'); return; }

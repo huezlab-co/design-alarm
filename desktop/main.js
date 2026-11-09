@@ -22,7 +22,7 @@ let HIDDEN = process.argv.includes('--hidden');
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 app.setAppUserModelId(APP_ID);
 
-let win = null, tray = null, quitting = false, painter = null;
+let win = null, tray = null, quitting = false, painter = null, deskSeen = false;
 let state = { tok: '', name: '', last: {}, rev: '' };   // last[이름|시험] = 알림 띄운 마지막 기록 번호
 let status = { n: 0, ok: false, err: '', name: '' };
 const popups = [];
@@ -48,7 +48,7 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1360, height: 900, minWidth: 420, minHeight: 560, show: false,
     title: NAME, icon: ICON, autoHideMenuBar: true, backgroundColor: '#f6f2ec',
-    webPreferences: { contextIsolation: true, backgroundThrottling: false },
+    webPreferences: { contextIsolation: true, backgroundThrottling: false, preload: path.join(__dirname, 'desk-preload.js') },
   });
   loadSite();
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -61,16 +61,18 @@ function createWindow() {
   win.on('focus', () => { win.flashFrame(false); closeAllPopups(); });
   win.on('close', e => { if (quitting) return; e.preventDefault(); win.hide(); });
   win.webContents.on('did-finish-load', () => setTimeout(tick, 2500));
+  // 액자 페이지가 404 등 오류 화면으로 열리면 프로그램 안 shell.html로
+  win.webContents.on('did-navigate', (_e, url, code) => { if (code >= 400 && !useLocal && !/^file:/.test(url)) { useLocal = true; loadSite(); } });
   win.webContents.on('render-process-gone', () => setTimeout(() => win && !win.isDestroyed() && win.reload(), 3000));
   win.webContents.on('did-fail-load', (_e, code, _d, _u, isMain) => { if (isMain && code !== -3 && !useLocal) { useLocal = true; return loadSite(); } if (isMain && code !== -3) setTimeout(() => win && !win.isDestroyed() && loadSite(), 15000); });
   if (!HIDDEN) win.once('ready-to-show', () => win.show());
 }
 // 창 = 액자 페이지(GitHub Pages desk.html, 안 되면 프로그램 안 shell.html) 속 웹앱
-const DESK = process.env.DA_SHELL === 'local' ? '' : 'https://huezlab-co.github.io/design-alarm/desk.html';
+const DESK = process.env.DA_SHELL === 'local' ? '' : (process.env.DA_DESK || 'https://huezlab-co.github.io/design-alarm/desk.html');
 let useLocal = !DESK;
 function loadSite() {
   if (!win || win.isDestroyed()) return;
-  if (useLocal) win.loadFile(path.join(__dirname, 'shell.html'), { query: { u: SITE } });
+  if (useLocal) { deskSeen = false; win.loadFile(path.join(__dirname, 'shell.html'), { query: { u: SITE } }); }
   else win.loadURL(DESK + '#u=' + DEPLOY + (TEST ? '&t=1' : ''));
 }
 function showWindow(taskId) {
@@ -80,7 +82,13 @@ function showWindow(taskId) {
   if (taskId) openInApp(taskId);
 }
 
-/* 창 안 웹앱(구글 iframe 속)에서 실행 */
+/* 웹앱 → 액자 페이지 → 프로그램: 로그인 정보(웹앱이 postMessage로 알려 줌) */
+ipcMain.on('desk-login', (e, o) => {
+  if (!win || e.sender !== win.webContents) return;
+  deskSeen = true;
+  if (o.tok !== state.tok) { state.tok = o.tok; state.name = o.name; state.rev = ''; saveState(); setTimeout(tick, 300); }
+});
+/* 창 안 웹앱(구글 iframe 속)에서 실행 — 액자 말 전달이 안 될 때(프로그램 안 shell.html)만 쓰는 예비 길 */
 async function inApp(code) {
   if (!win || win.isDestroyed()) return null;
   for (const f of win.webContents.mainFrame.framesInSubtree) {
@@ -90,13 +98,17 @@ async function inApp(code) {
 }
 function openInApp(id, n = 0) {
   if (!/^(DR|T)-\d{1,5}$/.test(id)) return;
+  if (deskSeen) { [0, 1500, 4000].forEach(t => setTimeout(() => win && !win.isDestroyed() && win.webContents.send('desk-open', id), t)); return; }
   inApp('if (OPEN !== ' + JSON.stringify(id) + ') openTask(' + JSON.stringify(id) + '); return 1;').then(r => { if (!r && n < 20) setTimeout(() => openInApp(id, n + 1), 1000); });
 }
 /* 웹앱 로그인 상태 읽기: PIN으로 들어가면 토큰, 로그아웃하면 빈 값 */
 async function readLogin() {
+  if (deskSeen) return;
   const r = await inApp('return { tok: TOKEN ? ((typeof TESTMODE !== "undefined" && TESTMODE) ? "T:" : "") + TOKEN : "", name: (typeof ME !== "undefined" && TOKEN) ? ME : "" };');
   if (r && typeof r.tok === 'string' && r.tok !== state.tok) { state.tok = r.tok; state.name = r.name || ''; state.rev = ''; saveState(); }
 }
+
+function wakeApp() { if (deskSeen) { if (win && !win.isDestroyed()) win.webContents.send('desk-wake'); } else inApp('wake(); return 1;'); }
 
 /* ---------- 서버에 묻기 ---------- */
 async function api(body) {
@@ -153,13 +165,13 @@ function lineOf(x) {
 }
 function alertNew(items, total) {
   const front = win && win.isVisible() && !win.isMinimized() && win.isFocused();
-  if (front) { inApp('wake(); return 1;'); return; }   // 보고 있는 중이면 화면만 바로 새로고침
+  if (front) { wakeApp(); return; }   // 보고 있는 중이면 화면만 바로 새로고침
   if (items.length) {
     const show = items.slice(-3);
     show.forEach(x => showPopup({ title: x.by + ' · ' + x.title, body: lineOf(x), id: x.id, kind: x.k }));
     if (items.length > 3) showPopup({ title: NAME, body: '새 소식 ' + items.length + '개가 있어요', id: '' });
   } else if (total) showPopup({ title: NAME, body: '안 읽은 소식 ' + total + '개가 있어요', id: '' });
-  inApp('wake(); return 1;');
+  wakeApp();
   // 작업표시줄 주황: 창이 숨어 있으면 작업표시줄에 다시 올려(최소화 상태) 주황으로
   if (win) {
     if (!win.isVisible()) { win.showInactive(); win.minimize(); }
