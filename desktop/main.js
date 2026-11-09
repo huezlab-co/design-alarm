@@ -1,4 +1,4 @@
-// 휴즈랩 디자인 작업 알림 — 윈도우 프로그램
+// (주)휴즈랩 디자인 — 윈도우 프로그램(디자인 작업 알림)
 // 창 = 운영 웹앱 그대로. 닫으면 트레이로 숨고, 서버에 20초마다 물어 새 소식이 있으면
 // ① 오른쪽 아래 알림 창  ② 작업표시줄 주황 깜빡임(창을 볼 때까지 주황 유지)  ③ 빨간 숫자
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, screen, shell, net, safeStorage, powerMonitor } = require('electron');
@@ -6,7 +6,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 
 const APP_ID = 'com.huezlab.designalarm';
-const NAME = '디자인 작업 알림';
+const NAME = '(주)휴즈랩 디자인';
 // 웹앱 주소(배포 ID). 시험할 때만 환경변수로 바꿈
 // 배포 ID는 저장소에 안 올림: 빌드할 때 config.json(.gitignore)에서 읽음
 const CFG = (() => { try { return require('./config.json'); } catch { return {}; } })();

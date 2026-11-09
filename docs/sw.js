@@ -18,11 +18,11 @@ function lineOf(x) {
 }
 async function onPush() {
   const exec = await DB.get('exec'), tok = await DB.get('tok');
-  const generic = () => self.registration.showNotification('디자인 작업', { body: '새 소식이 있어요', icon: 'icon-192.png', badge: 'badge.png', tag: 'da-any', data: { id: '' } });
+  const generic = () => self.registration.showNotification('(주)휴즈랩 디자인', { body: '새 소식이 있어요', icon: 'icon-192.png', badge: 'badge.png', tag: 'da-any', data: { id: '' } });
   if (!exec || !tok) return generic();
   let r;
   try { r = await (await fetch(exec, { method: 'POST', body: JSON.stringify({ api: 'poll', tok }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } })).json(); } catch (e) { return generic(); }
-  if (!r || !r.ok) return r && r.err === 'AUTH' ? self.registration.showNotification('디자인 작업', { body: '다시 로그인해 주세요. 앱을 열어 PIN을 넣으면 알림이 이어져요', icon: 'icon-192.png', badge: 'badge.png', tag: 'da-login', data: { id: '' } }) : generic();
+  if (!r || !r.ok) return r && r.err === 'AUTH' ? self.registration.showNotification('(주)휴즈랩 디자인', { body: '다시 로그인해 주세요. 앱을 열어 PIN을 넣으면 알림이 이어져요', icon: 'icon-192.png', badge: 'badge.png', tag: 'da-login', data: { id: '' } }) : generic();
   if (self.navigator.setAppBadge) { try { r.n ? await self.navigator.setAppBadge(r.n) : await self.navigator.clearAppBadge(); } catch (e) {} }
   const key = 'last_' + r.name + (r.test ? '|T' : '');
   let last = await DB.get(key); if (last !== undefined && last >= r.last) last = -1;   // 기록 줄이 줄었으면 다시 맞춤
@@ -35,7 +35,7 @@ async function onPush() {
   const live = new Set(r.items.map(x => x.id));
   (await self.registration.getNotifications()).forEach(n => { if (n.data && n.data.id && !live.has(n.data.id)) n.close(); });
   // 새 것이 없어도(다른 기기에서 이미 읽음·연달아 온 깨우기) 크롬 규칙상 알림 하나는 꼭 띄움 → 남은 수를 조용히 한 줄로
-  if (!fresh.length) { await self.registration.showNotification('디자인 작업', { body: r.n ? '안 읽은 소식 ' + r.n + '개가 있어요' : '새 소식을 모두 확인했어요', icon: 'icon-192.png', badge: 'badge.png', tag: 'da-sum', silent: true, renotify: false, data: { id: '' }  });
+  if (!fresh.length) { await self.registration.showNotification('(주)휴즈랩 디자인', { body: r.n ? '안 읽은 소식 ' + r.n + '개가 있어요' : '새 소식을 모두 확인했어요', icon: 'icon-192.png', badge: 'badge.png', tag: 'da-sum', silent: true, renotify: false, data: { id: '' }  });
     if (!r.n) { await new Promise(res => setTimeout(res, 4000)); (await self.registration.getNotifications({ tag: 'da-sum' })).forEach(n => n.close()); }
     return; }
   // 작업마다 알림 하나(같은 작업은 최신 내용으로 바꿔 다시 울림)

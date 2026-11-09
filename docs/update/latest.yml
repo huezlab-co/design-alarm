@@ -1,8 +1,8 @@
-version: 1.0.0
+version: 1.0.1
 files:
-  - url: design-alarm-setup-1.0.0.exe
-    sha512: py72UiPhKZawmm+DewVvVF7ZcdOHscWhUXf/yXXWxsLRsJ2AGbJeq+M1k6HhItN5gN+emghFUC5gwb69qcVtXw==
-    size: 81461914
-path: design-alarm-setup-1.0.0.exe
-sha512: py72UiPhKZawmm+DewVvVF7ZcdOHscWhUXf/yXXWxsLRsJ2AGbJeq+M1k6HhItN5gN+emghFUC5gwb69qcVtXw==
-releaseDate: '2026-11-09T01:51:55.625Z'
+  - url: huezlab-design-setup-1.0.1.exe
+    sha512: TZ2Z4dr0tJ3Ol+onbHZoJ9EVxpOiJ2milCIYRyzuY2Lt+rhOdtlnTf1k6tYNCvwgfMHS8FABcekWuUO446zlNA==
+    size: 81458059
+path: huezlab-design-setup-1.0.1.exe
+sha512: TZ2Z4dr0tJ3Ol+onbHZoJ9EVxpOiJ2milCIYRyzuY2Lt+rhOdtlnTf1k6tYNCvwgfMHS8FABcekWuUO446zlNA==
+releaseDate: '2026-11-09T02:34:35.428Z'
