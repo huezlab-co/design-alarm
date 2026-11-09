@@ -65,6 +65,12 @@ srv.listen(0, () => {
     check(z1 === -1 && z2 === -0.5 && D.state.zoom === -0.5, 'Ctrl − 두 번 = 작게, Ctrl+휠 위로 = 한 단계 크게 (' + z1 + ' → ' + z2 + ')');
     W().reload(); await wait(2500); check(W().webContents.getZoomLevel() === -0.5, '다시 열어도 맞춘 크기 그대로');
     await zk('0'); check(W().webContents.getZoomLevel() === 0 && D.state.zoom === 0, 'Ctrl 0 = 원래 크기');
+    // 새로고침 키
+    await ev('window.__mark = 1'); W().webContents.sendInputEvent({ type: 'keyDown', keyCode: 'F5' }); await wait(2500);
+    check(!!inner() && (await ev('window.__mark || 0')) === 0, 'F5 누르면 화면 새로고침');
+    await ev('window.__mark = 1'); W().webContents.sendInputEvent({ type: 'keyDown', keyCode: 'F5', modifiers: ['control'] }); await wait(2500);
+    check(!!inner() && (await ev('window.__mark || 0')) === 0, 'Ctrl+F5도 새로고침');
+    await ev('login()'); await D.tick();
     // 연결 끊김
     S.down = true; S.rev++; await D.tick(); check(D.status.err === 'net', '연결 끊기면 「다시 시도 중」');
     S.down = false; await D.tick(); check(D.status.ok && !D.status.err, '연결 돌아오면 정상');

@@ -64,7 +64,10 @@ function createWindow() {
   // 확대·축소: Ctrl+마우스 휠, Ctrl + / Ctrl − / Ctrl 0 — 맞춘 크기는 기억
   win.webContents.on('zoom-changed', (_e, dir) => setZoom((state.zoom || 0) + (dir === 'in' ? 0.5 : -0.5)));
   win.webContents.on('before-input-event', (e, i) => {
-    if (i.type !== 'keyDown' || !(i.control || i.meta) || i.alt) return;
+    if (i.type !== 'keyDown' || i.alt) return;
+    // 새로고침: F5 · Ctrl+F5 · Ctrl+R
+    if (i.key === 'F5' || ((i.control || i.meta) && (i.key === 'r' || i.key === 'R'))) { e.preventDefault(); state.rev = ''; loadSite(); setTimeout(tick, 3000); return; }
+    if (!(i.control || i.meta)) return;
     const k = i.key;
     if (k === '=' || k === '+' || i.code === 'NumpadAdd') { e.preventDefault(); setZoom((state.zoom || 0) + 0.5); }
     else if (k === '-' || k === '_' || i.code === 'NumpadSubtract') { e.preventDefault(); setZoom((state.zoom || 0) - 0.5); }
