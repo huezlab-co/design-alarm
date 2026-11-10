@@ -1,7 +1,7 @@
 {
   "name": "design-alarm",
   "productName": "(주)휴즈랩 디자인",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "(주)휴즈랩 디자인 — 디자인 작업 요청·현황판 + 새 소식 알림",
   "author": "HUEZLAB",
   "main": "main.js",

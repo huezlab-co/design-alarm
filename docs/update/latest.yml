@@ -1,8 +1,8 @@
-version: 1.0.5
+version: 1.0.6
 files:
-  - url: huezlab-design-setup-1.0.5.exe
-    sha512: Qc9dcdtt0GYwfQwIFsPiNJYQF0f6jg2TSBb8DMkhm4UnMyw7pi4/HFau1ybaMXWc9QU4L7kNfKp0dFK8fuFBNg==
-    size: 81459681
-path: huezlab-design-setup-1.0.5.exe
-sha512: Qc9dcdtt0GYwfQwIFsPiNJYQF0f6jg2TSBb8DMkhm4UnMyw7pi4/HFau1ybaMXWc9QU4L7kNfKp0dFK8fuFBNg==
-releaseDate: '2026-11-09T05:26:52.118Z'
+  - url: huezlab-design-setup-1.0.6.exe
+    sha512: d+zNIThPkd7OnMqt0mQe0G3cQ3LGIbXeyeucDWFVw71AYVrnCkumifST9CIF4w5vwesOc6N0FmAaf53pUwl3OQ==
+    size: 81461052
+path: huezlab-design-setup-1.0.6.exe
+sha512: d+zNIThPkd7OnMqt0mQe0G3cQ3LGIbXeyeucDWFVw71AYVrnCkumifST9CIF4w5vwesOc6N0FmAaf53pUwl3OQ==
+releaseDate: '2026-11-10T05:38:23.342Z'

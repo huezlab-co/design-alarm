@@ -48,6 +48,7 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1360, height: 900, minWidth: 420, minHeight: 560, show: false,
     title: NAME, icon: ICON, autoHideMenuBar: true, backgroundColor: '#f6f2ec',
+    frame: false,   // 맨 위 줄은 프로그램이 직접 그림(더 높게·버튼 크게) — desk-preload.js의 hzBar
     webPreferences: { contextIsolation: true, backgroundThrottling: false, preload: path.join(__dirname, 'desk-preload.js') },
   });
   loadSite();
@@ -60,7 +61,8 @@ function createWindow() {
   win.webContents.on('will-navigate', (e, url) => { if (!/^file:/.test(url) && url.split('#')[0] !== DESK) { e.preventDefault(); loadSite(); } });
   win.on('focus', () => { win.flashFrame(false); closeAllPopups(); });
   win.on('close', e => { if (quitting) return; e.preventDefault(); win.hide(); });
-  win.webContents.on('did-finish-load', () => { applyZoom(); showUpdBar(); setTimeout(tick, 2500); });
+  win.webContents.on('did-finish-load', () => { applyZoom(); sendChrome(); showUpdBar(); setTimeout(tick, 2500); });
+  win.on('maximize', sendChrome); win.on('unmaximize', sendChrome);
   // 확대·축소: Ctrl+마우스 휠, Ctrl + / Ctrl − / Ctrl 0 — 맞춘 크기는 기억
   win.webContents.on('zoom-changed', (_e, dir) => setZoom((state.zoom || 0) + (dir === 'in' ? 0.5 : -0.5)));
   win.webContents.on('before-input-event', (e, i) => {
@@ -82,7 +84,20 @@ function createWindow() {
 // 창 = 액자 페이지(GitHub Pages desk.html, 안 되면 프로그램 안 shell.html) 속 웹앱
 const DESK = process.env.DA_SHELL === 'local' ? '' : (process.env.DA_DESK || 'https://huezlab-co.github.io/design-alarm/desk.html');
 let useLocal = !DESK;
-function applyZoom() { if (win && !win.isDestroyed()) win.webContents.setZoomLevel(state.zoom || 0); }
+function applyZoom() { if (win && !win.isDestroyed()) { win.webContents.setZoomLevel(state.zoom || 0); sendChrome(); } }
+/* 맨 위 줄(제목·최소화·최대화·닫기): 프로그램이 그리는 줄에 이름·아이콘·최대화 상태·확대 배율을 알려 줌 */
+let ICON_URL = '';
+function sendChrome() {
+  if (!win || win.isDestroyed()) return;
+  if (!ICON_URL) { try { ICON_URL = 'data:image/png;base64,' + fs.readFileSync(ICON).toString('base64'); } catch { ICON_URL = ''; } }
+  win.webContents.send('desk-chrome', { title: NAME, icon: ICON_URL, max: win.isMaximized(), zf: Math.pow(1.2, state.zoom || 0) });
+}
+ipcMain.on('desk-win', (e, a) => {
+  if (!win || win.isDestroyed() || e.sender !== win.webContents) return;
+  if (a === 'min') win.minimize();
+  else if (a === 'max') { if (win.isMaximized()) win.unmaximize(); else win.maximize(); }
+  else if (a === 'close') win.close();   // 닫기 = 트레이로 숨김(알림은 계속)
+});
 function setZoom(z) { state.zoom = Math.max(-3, Math.min(3, Math.round(z * 2) / 2)); saveState(); applyZoom(); }
 function loadSite() {
   if (!win || win.isDestroyed()) return;
@@ -349,5 +364,5 @@ app.whenReady().then(() => {
 });
 // 시험용(DA_SELFTEST=1): 상태를 밖에서 볼 수 있게
 if (process.env.DA_SELFTEST === '1') {
-  global.__da = { get status() { return status; }, get popups() { return popups.map(p => p.webContents.getURL()); }, get state() { return state; }, tick, showWindow, get win() { return win; }, alertNew, closeAllPopups, paint };
+  global.__da = { get status() { return status; }, get popups() { return popups.map(p => p.webContents.getURL()); }, get state() { return state; }, tick, showWindow, get win() { return win; }, alertNew, closeAllPopups, paint, setZoom };
 }
