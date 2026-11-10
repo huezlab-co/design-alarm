@@ -35,7 +35,7 @@ srv.listen(0, () => {
       // 맨 위 줄(프로그램이 그림): 이름·버튼 3개·높이 46, 웹앱은 그 아래
       W().show(); await wait(300);
       const tb = await W().webContents.executeJavaScript("(() => { const b = document.getElementById('hzBar'), f = document.getElementById('app'); return b ? [b.textContent, b.querySelectorAll('.hzb').length, b.getBoundingClientRect().height, getComputedStyle(f).top, getComputedStyle(b).webkitAppRegion] : null; })()");
-      check(tb && /휴즈랩 디자인/.test(tb[0]) && tb[1] === 3 && Math.round(tb[2]) === 52 && tb[3] === '52px' && tb[4] === 'drag', '맨 위 줄: 이름·버튼 3개·높이 52·끌어서 창 옮기기, 웹앱은 아래로 ' + JSON.stringify(tb));
+      check(tb && /휴즈랩 디자인/.test(tb[0]) && tb[1] === 3 && Math.round(tb[2]) === 40 && tb[3] === '40px' && tb[4] === 'drag', '맨 위 줄: 이름·버튼 3개·높이 40·끌어서 창 옮기기, 웹앱은 아래로 ' + JSON.stringify(tb));
       check(W().isMaximized() === false, '처음엔 최대화 아님');
       // 최대화(시험 화면엔 창 관리자가 없어 실제 최대화는 윈도우에서 확인) — 버튼이 프로그램에 전달되는지·모양 바뀌는지
       let asked = null; const om = W().maximize, ou = W().unmaximize; W().maximize = () => { asked = 'max'; }; W().unmaximize = () => { asked = 'un'; };
@@ -49,7 +49,7 @@ srv.listen(0, () => {
       check(mn === 1, '최소화 버튼 → 프로그램이 창 최소화');
       D.setZoom(1); await wait(500);
       const zh = await W().webContents.executeJavaScript("(() => { const b = document.getElementById('hzBar'); return [b.getBoundingClientRect().height, getComputedStyle(document.getElementById('app')).top]; })()");
-      check(Math.abs(zh[0] * 1.2 - 52) < 1.5 && Math.abs(parseFloat(zh[1]) * 1.2 - 52) < 1.5, 'Ctrl+휠로 크게 해도 맨 위 줄 크기는 그대로 ' + JSON.stringify(zh));
+      check(Math.abs(zh[0] * 1.2 - 40) < 1.5 && Math.abs(parseFloat(zh[1]) * 1.2 - 40) < 1.5, 'Ctrl+휠로 크게 해도 맨 위 줄 크기는 그대로 ' + JSON.stringify(zh));
       const cap = await W().webContents.capturePage(); require('fs').writeFileSync('/tmp/tb_zoom.png', cap.toPNG());
       D.setZoom(0); await wait(500); W().setSize(1360, 900); await wait(300);
       const cap0 = await W().webContents.capturePage(); require('fs').writeFileSync('/tmp/tb_bar.png', cap0.toPNG());
@@ -58,7 +58,7 @@ srv.listen(0, () => {
       // 업데이트 띠
       W().show(); W().webContents.send('desk-update', '1.0.9'); await wait(500);
       const bar = await W().webContents.executeJavaScript("(() => { const b = document.getElementById('hzUpd'), f = document.getElementById('app'); return b ? [b.textContent, getComputedStyle(f).top] : null; })()");
-      check(bar && /새 업데이트가 나왔어요\(1\.0\.9\)/.test(bar[0]) && bar[1] === '96px', '업데이트 받으면 맨 위 줄 바로 아래 띠(웹앱은 아래로 밀림)');
+      check(bar && /새 업데이트가 나왔어요\(1\.0\.9\)/.test(bar[0]) && bar[1] === '84px', '업데이트 받으면 맨 위 줄 바로 아래 띠(웹앱은 아래로 밀림)');
       const img = await W().webContents.capturePage(); require('fs').writeFileSync('/tmp/upd_bar.png', img.toPNG());
       await ev('logout()'); await wait(800); check(D.state.tok === '', '웹앱 로그아웃도 바로 전달');
     }

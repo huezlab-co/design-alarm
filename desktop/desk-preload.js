@@ -4,14 +4,14 @@ const okOrigin = location.protocol === 'file:' || location.origin === 'https://h
 
 /* 맨 위 줄 — 윈도우 기본 줄보다 높게, 최소화·최대화·닫기 버튼도 크게(창 테두리는 프로그램이 직접 그림)
  * 확대·축소(Ctrl+휠)를 해도 이 줄 크기는 그대로(배율만큼 거꾸로 줄임) */
-const TB = 52;            // 줄 높이
+const TB = 40;            // 줄 높이
 const UPD = 44;           // 업데이트 띠 높이
 let zf = 1, updOn = false;
 const ICONS = {
-  min: '<svg width="20" height="20" viewBox="0 0 16 16"><path d="M2 8.5h12" stroke="currentColor" stroke-width="1.4"/></svg>',
-  max: '<svg width="20" height="20" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
-  res: '<svg width="20" height="20" viewBox="0 0 16 16"><rect x="2.5" y="5" width="8.5" height="8.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5 5V3.5a1 1 0 0 1 1-1h6.5a1 1 0 0 1 1 1V10a1 1 0 0 1-1 1H11" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
-  close: '<svg width="20" height="20" viewBox="0 0 16 16"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.4"/></svg>',
+  min: '<svg width="16" height="16" viewBox="0 0 16 16"><path d="M2 8.5h12" stroke="currentColor" stroke-width="1.4"/></svg>',
+  max: '<svg width="16" height="16" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+  res: '<svg width="16" height="16" viewBox="0 0 16 16"><rect x="2.5" y="5" width="8.5" height="8.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5 5V3.5a1 1 0 0 1 1-1h6.5a1 1 0 0 1 1 1V10a1 1 0 0 1-1 1H11" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+  close: '<svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.4"/></svg>',
 };
 function layout() {
   const bar = document.getElementById('hzBar'); if (!bar) return;
@@ -27,12 +27,12 @@ function drawBar(o) {
   let bar = document.getElementById('hzBar');
   if (!bar) {
     bar = document.createElement('div'); bar.id = 'hzBar';
-    bar.style.cssText = 'position:fixed;left:0;right:0;top:0;height:' + TB + 'px;z-index:10;display:flex;align-items:center;background:#231e1c;color:#fff;-webkit-app-region:drag;user-select:none;font:600 17px "Malgun Gothic","맑은 고딕",sans-serif;letter-spacing:-.2px';
+    bar.style.cssText = 'position:fixed;left:0;right:0;top:0;height:' + TB + 'px;z-index:10;display:flex;align-items:center;background:#231e1c;color:#fff;-webkit-app-region:drag;user-select:none;font:600 15px "Malgun Gothic","맑은 고딕",sans-serif;letter-spacing:-.2px';
     const st = document.createElement('style');
-    st.textContent = '#hzBar .hzb{-webkit-app-region:no-drag;width:66px;height:' + TB + 'px;border:0;margin:0;padding:0;background:transparent;color:#fff;display:flex;align-items:center;justify-content:center;cursor:default}' +
+    st.textContent = '#hzBar .hzb{-webkit-app-region:no-drag;width:54px;height:' + TB + 'px;border:0;margin:0;padding:0;background:transparent;color:#fff;display:flex;align-items:center;justify-content:center;cursor:default}' +
       '#hzBar .hzb:hover{background:rgba(255,255,255,.14)}#hzBar .hzb:active{background:rgba(255,255,255,.22)}#hzBar .hzb.x:hover{background:#e81123}#hzBar .hzb.x:active{background:#c50f1f}';
     bar.appendChild(st);
-    const ic = document.createElement('img'); ic.id = 'hzBarIc'; ic.alt = ''; ic.style.cssText = 'width:26px;height:26px;margin:0 11px 0 15px;flex:none';
+    const ic = document.createElement('img'); ic.id = 'hzBarIc'; ic.alt = ''; ic.style.cssText = 'width:22px;height:22px;margin:0 9px 0 12px;flex:none';
     const tt = document.createElement('span'); tt.id = 'hzBarT'; tt.style.cssText = 'flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
     bar.append(ic, tt);
     [['min', '최소화'], ['max', '최대화'], ['close', '닫기']].forEach(([a, label]) => {
