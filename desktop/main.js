@@ -14,7 +14,7 @@ const DEPLOY = process.env.DA_DEPLOY || (CFG.d ? Buffer.from(CFG.d.split('').rev
 const EXEC = process.env.DA_EXEC || 'https://script.google.com/macros/s/' + DEPLOY + '/exec';
 const TEST = process.env.DA_TEST === '1';
 const SITE = EXEC + (TEST ? '?test=1' : '');
-const POLL_MS = 20000;
+const POLL_MS = 5000;   // 바뀐 게 없으면 서버가 시트를 안 읽고 바로 답함(rev) — 알림이 5초 안에 뜨게
 const ICON = path.join(__dirname, 'build', 'icon.png');
 const STATE_FILE = () => path.join(app.getPath('userData'), 'state.json');
 let HIDDEN = process.argv.includes('--hidden');
