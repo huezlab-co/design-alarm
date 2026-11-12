@@ -154,13 +154,14 @@ async function api(body) {
   const t = await res.text();
   try { return JSON.parse(t); } catch { throw new Error('응답 형식'); }
 }
-let busy = false, first = true;
+let busy = false, first = true, again = false;
 async function tick() {
   if (busy) return; busy = true;
   try {
     await readLogin();
     if (!state.tok) { setStatus({ n: 0, ok: false, err: 'login', name: '' }); return; }
-    const r = await api({ api: 'poll', tok: state.tok, rev: state.rev });
+    // wait: 서버가 바뀔 때까지(최대 20초) 붙잡고 있다가 바로 답함 → 알림이 1~2초 안에. 답이 오면 바로 다시 기다림(아래 again)
+    const t0 = Date.now(); const r = await api({ api: 'poll', tok: state.tok, rev: state.rev, wait: state.rev ? 1 : 0 }); again = Date.now() - t0 > 800 || !r.same;
     if (!r.ok) {
       if (r.err === 'AUTH') { state.tok = ''; state.name = ''; state.rev = ''; saveState(); setStatus({ n: 0, ok: false, err: 'login', name: '' }); }
       else setStatus(Object.assign({}, status, { err: 'net' }));
@@ -182,7 +183,7 @@ async function tick() {
     first = false;
   } catch (e) {
     setStatus(Object.assign({}, status, { err: 'net' }));
-  } finally { busy = false; }
+  } finally { busy = false; if (again) { again = false; setTimeout(tick, 300); } }
 }
 
 /* ---------- 알림 ---------- */
