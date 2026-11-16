@@ -63,6 +63,7 @@ function createWindow() {
   win.on('close', e => { if (quitting) return; e.preventDefault(); win.hide(); });
   win.webContents.on('did-finish-load', () => { applyZoom(); sendChrome(); showUpdBar(); setTimeout(tick, 2500); });
   win.on('maximize', sendChrome); win.on('unmaximize', sendChrome);
+  win.on('restore', () => { try { win.setOpacity(1); } catch {} }); win.on('show', () => { if (!win.isMinimized()) { try { win.setOpacity(1); } catch {} } });   // 혹시 투명한 채 남지 않게
   // 확대·축소: Ctrl+마우스 휠, Ctrl + / Ctrl − / Ctrl 0 — 맞춘 크기는 기억
   win.webContents.on('zoom-changed', (_e, dir) => setZoom((state.zoom || 0) + (dir === 'in' ? 0.5 : -0.5)));
   win.webContents.on('before-input-event', (e, i) => {
@@ -141,7 +142,13 @@ async function readLogin() {
  * (아이콘이 생기기 전에 한 번만 켜면 윈도우가 무시함 — 11-09 대표 PC에서 알림 창만 뜨고 주황이 안 들어옴) */
 function flashOrange() {
   if (!win || win.isDestroyed()) return;
-  if (!win.isVisible()) { win.showInactive(); win.minimize(); }
+  // 트레이에 숨어 있으면 작업표시줄에 최소화 상태로 올려야 주황이 켜짐. 그냥 보였다 줄이면 창(특히 최대화 창)이 번쩍 떴다 사라지므로
+  // 투명하게 만든 채로 올리고 줄인 뒤 다시 불투명하게(1.0.10)
+  if (!win.isVisible()) {
+    try { win.setOpacity(0); } catch {}
+    win.showInactive(); win.minimize();
+    setTimeout(() => { try { if (win && !win.isDestroyed()) win.setOpacity(1); } catch {} }, 400);
+  }
   const go = () => { if (win && !win.isDestroyed() && !(win.isVisible() && !win.isMinimized() && win.isFocused())) win.flashFrame(true); };
   go(); [400, 1500, 4000].forEach(t => setTimeout(go, t));
 }
